@@ -1,0 +1,152 @@
+<!doctype html>
+<!--
+  404 page. GitHub Pages serves this file for any missing URL at any depth, so it is
+  fully self-contained (inline CSS, no relative asset paths) and links home with "/"
+  (the site deploys at the domain root). Colors mirror the tokens in assets/css/style.css.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page not found — Vlad Bucur</title>
+  <meta name="robots" content="noindex">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="description" content="This page could not be found.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131210" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #F6F3EC;
+      --bg-sunken: #EDE8DE;
+      --text: #1A1916;
+      --text-muted: #5A554C;
+      --rule: #DCD5C8;
+      --rule-strong: #8A8275;
+      --accent: #9A2B1E;
+      --on-accent: #FBFAF6;
+      --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #131210;
+      --bg-sunken: #1C1B18;
+      --text: #ECE7DC;
+      --text-muted: #A59E91;
+      --rule: #2F2C27;
+      --rule-strong: #6F685D;
+      --accent: #EE8B72;
+      --on-accent: #131210;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #131210;
+        --bg-sunken: #1C1B18;
+        --text: #ECE7DC;
+        --text-muted: #A59E91;
+        --rule: #2F2C27;
+        --rule-strong: #6F685D;
+        --accent: #EE8B72;
+        --on-accent: #131210;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-wrap: break-word;
+    }
+    h1, p { margin: 0; }
+    svg { display: block; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+    .container { width: 100%; max-width: calc(72rem + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+    .site-header .container { display: flex; align-items: center; min-height: 4.25rem; }
+    .wordmark {
+      display: inline-flex; align-items: center; min-height: 44px;
+      font-family: var(--font-display); font-size: 1.3125rem; font-weight: 500; letter-spacing: -0.015em;
+      color: inherit; text-decoration: none;
+    }
+    .wordmark span { color: var(--accent); }
+    main { flex: 1; display: flex; align-items: center; padding-block: clamp(3rem, 2rem + 6vw, 7rem); }
+    .notfound { border-top: 1px solid var(--rule-strong); padding-top: 1.5rem; }
+    .eyebrow {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.875rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-muted); font-variant-numeric: tabular-nums lining-nums;
+    }
+    .eyebrow::before { content: ""; width: 2.5rem; height: 1px; background-color: var(--accent); }
+    h1 {
+      margin-top: 1.5rem;
+      font-family: var(--font-display); font-weight: 400;
+      font-size: clamp(2.75rem, 1.8rem + 5vw, 6rem); line-height: 1; letter-spacing: -0.03em;
+    }
+    h1 em { font-style: italic; color: var(--accent); }
+    .notfound__text { margin-top: 1.25rem; max-width: 40ch; font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem); color: var(--text-muted); }
+    .button {
+      display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.875rem; margin-top: 2rem;
+      padding: 0.6875rem 1.25rem; border-radius: 4px;
+      background-color: var(--text); color: var(--bg);
+      font-size: 0.875rem; font-weight: 500; letter-spacing: 0.01em; text-decoration: none;
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+    .button:hover { background-color: var(--accent); color: var(--on-accent); }
+    .button svg { width: 1rem; height: 1rem; }
+    .site-footer { padding-block: 2rem 3rem; }
+    .site-footer .container > p { padding-top: 1.5rem; border-top: 3px double var(--rule-strong); font-size: 0.875rem; color: var(--text-muted); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="wordmark" href="/">Vlad Bucur<span aria-hidden="true">.</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container">
+      <div class="notfound">
+        <p class="eyebrow">Error 404</p>
+        <h1>Page not <em>found.</em></h1>
+        <p class="notfound__text">The page you’re looking for doesn’t exist or may have moved.</p>
+        <a class="button" href="/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+          Return home
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 Vlad Bucur</p>
+    </div>
+  </footer>
+</body>
+</html>
