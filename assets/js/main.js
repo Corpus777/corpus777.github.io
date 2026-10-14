@@ -1,12 +1,10 @@
 /* ==========================================================================
    Vlad Bucur — site behaviour (no dependencies)
-   1. Theme toggle   [data-theme-toggle]  light/dark, persisted in localStorage
-   2. Mobile nav     [data-nav-toggle]    disclosure for #site-nav
-   3. Header state   [data-site-header]   hairline once the page scrolls
-   4. Current section highlight in the nav (aria-current="location")
-   Every block is guarded, so the same file works on index.html, case-study
-   pages, and anything added later.
+   1. Theme toggle   [data-theme-toggle]   light/dark, persisted in localStorage
+   2. Scroll regions [data-scroll-region]  keyboard access to the shell's columns
+   The portfolio sidebar is rendered by assets/js/portfolio.js.
    The anti-flash theme script lives inline in each page's <head>.
+   Every block is guarded, so the same file works on every page.
    ========================================================================== */
 (function () {
   'use strict';
@@ -78,109 +76,43 @@
 
   syncThemeUI();
 
-  /* 2. Mobile navigation --------------------------------------------------- */
+  /* 2. Scroll regions -------------------------------------------------------
+     On large screens the main column scrolls on its own. A scroll container
+     with nothing focusable inside can't be scrolled from the keyboard, so it
+     becomes a tab stop (tabindex="0", named by its aria-label) exactly while
+     it is scrollable and has no focusable content. Otherwise it is set back
+     to tabindex="-1", which keeps it a target for the skip link. The HTML
+     ships the no-JS default. */
 
-  var header = document.querySelector('[data-site-header]');
-  var navToggle = document.querySelector('[data-nav-toggle]');
-  var nav = navToggle ? document.getElementById(navToggle.getAttribute('aria-controls')) : null;
+  var regions = Array.prototype.slice.call(document.querySelectorAll('[data-scroll-region]'));
+  var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
-  if (header && navToggle && nav) {
-    var setNavOpen = function (open) {
-      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      header.classList.toggle('is-nav-open', open);
+  if (regions.length) {
+    var isScrollable = function (el) {
+      var overflowY = window.getComputedStyle(el).overflowY;
+      return (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 1;
     };
-    var isNavOpen = function () {
-      return navToggle.getAttribute('aria-expanded') === 'true';
-    };
 
-    navToggle.addEventListener('click', function () {
-      setNavOpen(!isNavOpen());
-    });
-
-    // Close after choosing a destination.
-    nav.addEventListener('click', function (event) {
-      if (event.target.closest('a')) setNavOpen(false);
-    });
-
-    // Close on Escape and return focus to the toggle.
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && isNavOpen()) {
-        setNavOpen(false);
-        navToggle.focus();
-      }
-    });
-
-    // Close when clicking anywhere outside the header.
-    document.addEventListener('click', function (event) {
-      if (isNavOpen() && !header.contains(event.target)) setNavOpen(false);
-    });
-
-    // Close when keyboard focus moves out of the header, so the open panel never hides it.
-    header.addEventListener('focusout', function (event) {
-      if (isNavOpen() && event.relatedTarget && !header.contains(event.relatedTarget)) setNavOpen(false);
-    });
-
-    // Reset when the layout switches to the desktop nav (matches the CSS breakpoint).
-    if (window.matchMedia) {
-      var desktopQuery = window.matchMedia('(min-width: 48em)');
-      var onDesktopChange = function () {
-        if (desktopQuery.matches) setNavOpen(false);
-      };
-      if (desktopQuery.addEventListener) desktopQuery.addEventListener('change', onDesktopChange);
-      else if (desktopQuery.addListener) desktopQuery.addListener(onDesktopChange);
-    }
-  }
-
-  /* 3. Header hairline on scroll -------------------------------------------- */
-
-  if (header) {
-    var ticking = false;
-    var updateHeader = function () {
-      header.classList.toggle('is-scrolled', window.scrollY > 8);
-      ticking = false;
-    };
-    window.addEventListener('scroll', function () {
-      if (!ticking) {
-        ticking = true;
-        window.requestAnimationFrame(updateHeader);
-      }
-    }, { passive: true });
-    updateHeader();
-  }
-
-  /* 4. Current-section highlight -------------------------------------------- */
-
-  var navLinks = Array.prototype.slice.call(
-    document.querySelectorAll('.site-nav__link[href^="#"]')
-  );
-
-  if (navLinks.length && 'IntersectionObserver' in window) {
-    var linkFor = {};
-    navLinks.forEach(function (link) {
-      linkFor[link.getAttribute('href').slice(1)] = link;
-    });
-
-    var setCurrent = function (id) {
-      navLinks.forEach(function (link) {
-        if (link === linkFor[id]) link.setAttribute('aria-current', 'location');
-        else link.removeAttribute('aria-current');
+    var syncRegions = function () {
+      regions.forEach(function (el) {
+        var needsStop = isScrollable(el) && !el.querySelector(FOCUSABLE);
+        el.setAttribute('tabindex', needsStop ? '0' : '-1');
       });
     };
 
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) setCurrent(entry.target.id);
+    var queued = false;
+    var queueSync = function () {
+      if (queued) return;
+      queued = true;
+      window.requestAnimationFrame(function () {
+        queued = false;
+        syncRegions();
       });
-    }, { rootMargin: '-45% 0px -50% 0px' }); // a thin band across the middle of the viewport
+    };
 
-    Object.keys(linkFor).forEach(function (id) {
-      var section = document.getElementById(id);
-      if (section) observer.observe(section);
-    });
-
-    // Elements marked [data-nav-clear] (the hero) clear the highlight when in view.
-    document.querySelectorAll('[data-nav-clear][id]').forEach(function (el) {
-      observer.observe(el);
-    });
+    syncRegions();
+    window.addEventListener('resize', queueSync, { passive: true });
+    window.addEventListener('load', queueSync);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueSync);
   }
 })();

@@ -3,24 +3,27 @@
    Direction: "Editorial" — serif display (Newsreader) + sans body (IBM Plex Sans),
    paper-and-ink palette with a single red-ink accent, hairline rules.
 
+   Layout: a two-column "app shell". On large screens (>= 64em wide AND >= 36em
+   tall) the page is exactly one viewport tall: profile header on top, the main
+   column (left, ~70%) and the portfolio aside (right, ~30%) scroll on their own.
+   Everything below that breakpoint is ordinary stacked document flow.
+
    Contents
      1.  Tokens (light default, explicit dark, system-dark fallback)
      2.  Base & reset
-     3.  Utilities (container, visually-hidden, skip link, eyebrow, prose)
-     4.  Header & navigation
-     5.  Buttons & icon buttons
-     6.  Hero & portrait
-     7.  Sections (shared two-column layout)
-     8.  Timeline (experience + education)
-     9.  Projects (empty state, grid, card, tags)
-     10. Contact link rows
-     11. Footer
-     12. Case-study page (projects/<slug>/index.html)
-     13. Motion & reduced motion
-     14. Print
+     3.  Utilities (visually-hidden, skip link, eyebrow, label, prose, scrollbars)
+     4.  App shell layout
+     5.  Profile header & portrait
+     6.  Buttons & icon buttons
+     7.  Resume (about, timeline)
+     8.  Column footer
+     9.  Portfolio aside (filters, groups, cards, empty state)
+     10. Project page (projects/<slug>/index.html)
+     11. Motion & reduced motion
+     12. Print
 
    Naming: BEM-ish. .block, .block__element, .block--modifier.
-           State classes are prefixed .is-* (toggled by assets/js/main.js).
+           State classes are prefixed .is-* (toggled by the scripts in assets/js/).
            html.js is added by the inline <head> script when JS runs.
    ========================================================================== */
 
@@ -34,7 +37,7 @@
   /* Color — light (default). Contrast checked against --bg/--surface/--bg-sunken:
      text 15.9:1, muted 6.1–7.1:1, accent 6.3–7.3:1, rule-strong 3.1–3.6:1 (UI). */
   --bg: #F6F3EC;            /* paper */
-  --bg-sunken: #EDE8DE;     /* recessed panels, portrait frame */
+  --bg-sunken: #EDE8DE;     /* recessed panels, portrait frame, badges */
   --surface: #FBFAF6;       /* raised cards */
   --text: #1A1916;          /* ink */
   --text-muted: #5A554C;
@@ -43,7 +46,7 @@
   --accent: #9A2B1E;        /* red ink */
   --accent-strong: #7A1F14; /* accent hover */
   --on-accent: #FBFAF6;
-  --ink: var(--text);       /* primary button fill */
+  --ink: var(--text);       /* primary button + active chip fill */
   --on-ink: var(--bg);
   --focus: var(--accent);
 
@@ -51,13 +54,13 @@
   --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  --step--2: 0.75rem;
   --step--1: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
   --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
   --step-1: clamp(1.125rem, 1.06rem + 0.35vw, 1.3125rem);
   --step-2: clamp(1.375rem, 1.22rem + 0.75vw, 1.875rem);
   --step-3: clamp(1.75rem, 1.45rem + 1.5vw, 2.75rem);
   --step-4: clamp(2.25rem, 1.7rem + 2.75vw, 4rem);
-  --step-5: clamp(3rem, 1.9rem + 5.5vw, 6.75rem);
 
   /* Space (8pt-ish scale) */
   --space-3xs: 0.25rem;
@@ -69,18 +72,17 @@
   --space-xl: 3rem;
   --space-2xl: 4rem;
   --space-3xl: 6rem;
-  --space-section: clamp(3.5rem, 2rem + 6vw, 7rem);
 
-  /* Shape: s = controls, m = containers, full = tags + portrait arch */
+  /* Shape: s = controls, m = containers, full = chips + tags */
   --radius-s: 4px;
   --radius-m: 10px;
   --radius-full: 999px;
 
   /* Layout */
-  --container: 72rem;
+  --shell-max: 80rem;
+  --shell-gap: clamp(1.5rem, 0.5rem + 2vw, 2.5rem); /* each side of the column rule */
   --gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
-  --measure: 68ch;
-  --header-h: 4.25rem;
+  --measure: 66ch;
   --touch: 44px;
 
   /* Motion */
@@ -135,12 +137,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--header-h) + var(--space-s));
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -150,6 +152,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-wrap: break-word;
+}
+
+/* Author display rules must never beat the hidden attribute. */
+[hidden] {
+  display: none !important;
 }
 
 h1, h2, h3, h4, p, ul, ol, dl, dd, figure {
@@ -196,21 +203,9 @@ button {
   border-radius: var(--radius-s);
 }
 
-/* Programmatic focus target for the skip link; no ring needed. */
-main:focus {
-  outline: none;
-}
-
 
 /* 3. Utilities
    ========================================================================== */
-
-.container {
-  width: 100%;
-  max-width: calc(var(--container) + 2 * var(--gutter));
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
 
 .visually-hidden {
   position: absolute !important;
@@ -247,7 +242,7 @@ main:focus {
   transform: none;
 }
 
-/* Small uppercase label used above titles. */
+/* Small tracked uppercase line (tagline eyebrow, empty state, breadcrumb). */
 .eyebrow {
   display: flex;
   flex-wrap: wrap;
@@ -256,9 +251,40 @@ main:focus {
   font-family: var(--font-sans);
   font-size: var(--step--1);
   font-weight: 500;
+  line-height: 1.4;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* Section label: red number, tracked uppercase word, hairline to the edge.
+   Used for every h2 in the columns ("01 About", "04 Portfolio", …). */
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.label::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: var(--space-l);
+  height: 1px;
+  background-color: var(--rule);
+}
+
+.label__num {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.08em;
+  color: var(--accent);
 }
 
 /* Long-form text block with a comfortable measure. */
@@ -303,7 +329,7 @@ main:focus {
 
 /* Larger serif paragraph that opens a section. */
 .lede {
-  max-width: 34ch;
+  max-width: 36ch;
   font-family: var(--font-display);
   font-size: var(--step-2);
   line-height: 1.35;
@@ -318,235 +344,415 @@ main:focus {
   color: var(--accent);
 }
 
+/* Thin, theme-coloured scrollbars for the shell's scroll containers.
+   (Chrome/Firefox use scrollbar-*; Safari falls back to ::-webkit-scrollbar.) */
+.scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
 
-/* 4. Header & navigation
+.scroller::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background-color: var(--rule-strong);
+  background-clip: padding-box;
+}
+
+
+/* 4. App shell layout
+   ==========================================================================
+   Narrow or short viewports: header, main, aside in normal flow.
+   Large viewports: one screen tall, two independently scrolling columns. */
+
+.shell {
+  width: 100%;
+  max-width: calc(var(--shell-max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.shell__main {
+  padding-block: var(--space-l) var(--space-xl);
+}
+
+/* Focus ring for the main column when it is a keyboard scroll stop
+   (tabindex="0" is managed by assets/js/main.js). */
+.shell__main:focus {
+  outline: none;
+}
+
+.shell__main[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.shell__aside {
+  padding-block: var(--space-xl) var(--space-2xl);
+}
+
+@media screen and (min-width: 64em) and (min-height: 36em) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(20rem, 3fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: var(--shell-gap);
+    height: 100%;
+  }
+
+  .profile {
+    grid-column: 1 / -1;
+  }
+
+  .shell__main {
+    min-height: 0;
+    /* A little inline padding so focus rings are not clipped by the scroller;
+       the negative margin keeps the text aligned with the header. */
+    margin-inline-start: -0.375rem;
+    padding: var(--space-l) var(--space-m) var(--space-2xl) 0.375rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .shell__aside {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 0 0 var(--shell-gap);
+    border-left: 1px solid var(--rule);
+  }
+
+  .portfolio__head {
+    flex: none;
+    padding-top: var(--space-l);
+  }
+
+  .portfolio__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: var(--space-2xl);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  /* In the shell the footer ends the scrolling main column. The extra .shell
+     beats the later section-8 rule that hides this copy outside the shell. */
+  .shell .shell__main > .colophon {
+    display: block;
+  }
+
+  .shell .colophon--page {
+    display: none;
+  }
+}
+
+/* Short shell (e.g. 1366 x 768 laptops): a 16:10 card is taller than the
+   scrolling list, so cards become rows with a small square thumbnail.
+   Selectors are doubled up because the base card rules come later (section 9). */
+@media screen and (min-width: 64em) and (min-height: 36em) and (max-height: 47.99em) {
+  .cards .card {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    column-gap: var(--space-s);
+  }
+
+  .card .card__media {
+    aspect-ratio: 1;
+  }
+
+  .card .card__initials {
+    font-size: 1.5rem;
+  }
+}
+
+
+/* 5. Profile header & portrait
    ========================================================================== */
 
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background-color: var(--bg);
-  border-bottom: 1px solid transparent;
-  transition: border-color var(--dur) var(--ease);
-}
-
-.site-header.is-scrolled,
-.site-header.is-nav-open {
-  border-bottom-color: var(--rule);
-}
-
-.site-header__inner {
-  display: flex;
+.profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "portrait id"
+    "tagline  tagline"
+    "actions  actions";
   align-items: center;
-  gap: var(--space-s);
-  min-height: var(--header-h);
+  column-gap: var(--space-s);
+  padding-block: var(--space-m) var(--space-xs);
+  border-bottom: 1px solid var(--rule-strong);
 }
 
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch);
-  margin-right: auto;
-  font-family: var(--font-display);
-  font-size: 1.3125rem;
-  font-weight: 500;
-  letter-spacing: -0.015em;
-  text-decoration: none;
-  white-space: nowrap;
+.profile__portrait {
+  grid-area: portrait;
 }
 
-.wordmark__dot {
-  color: var(--accent);
+.profile__id {
+  grid-area: id;
+  min-width: 0;
 }
 
-.site-nav__list {
+.profile__eyebrow {
+  overflow: hidden; /* clips separators that land at the start of a line */
+  font-size: 0.6875rem;
+}
+
+/* Topics with "·" separators. Each separator sits in its topic's left margin,
+   so when the line wraps, the one starting the new line is clipped away
+   instead of dangling at the end of the previous line. */
+.profile__topics {
+  --sep: 1.25em;
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: 0 var(--space-m);
-  list-style: none;
-  padding: 0;
+  min-width: 0;
+  margin-left: calc(-1 * var(--sep));
 }
 
-.site-nav__link {
+.profile__topics > span {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch);
-  font-size: var(--step--1);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-muted);
+  margin-left: var(--sep);
+}
+
+.profile__topics > span::before {
+  content: "·";
+  content: "·" / "";
+  position: absolute;
+  right: 100%;
+  width: var(--sep);
+  text-align: center;
+}
+
+.profile__topics > span:first-child::before {
+  content: none;
+}
+
+.profile__name {
+  margin-top: var(--space-3xs);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 1.4rem + 1.8vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.profile__name a {
   text-decoration: none;
   transition: color var(--dur) var(--ease);
 }
 
-.site-nav__link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0.625rem;
-  height: 1px;
-  background-color: currentColor;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--dur) var(--ease);
+.profile__name a:hover {
+  color: var(--accent);
 }
 
-.site-nav__link:hover,
-.site-nav__link[aria-current] {
-  color: var(--text);
+.profile__dot {
+  color: var(--accent);
 }
 
-.site-nav__link:hover::after,
-.site-nav__link[aria-current]::after {
-  transform: scaleX(1);
+.profile__tagline {
+  grid-area: tagline;
+  max-width: 48ch;
+  margin-top: var(--space-s);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
-.site-header__actions {
+.profile__actions {
+  grid-area: actions;
   display: flex;
   align-items: center;
   gap: var(--space-3xs);
+  margin-top: var(--space-xs);
+  margin-inline: -0.5rem; /* optical: icons line up with the text edge */
 }
 
-/* Theme toggle icon swap: moon in light mode, sun in dark mode. */
-.theme-toggle__sun {
-  display: none;
+.profile__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3xs);
+  list-style: none;
+  padding: 0;
 }
 
-:root[data-theme="dark"] .theme-toggle__sun {
-  display: block;
+.profile__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--touch);
+  padding-inline: 0.5rem;
+  border-radius: var(--radius-s);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-decoration: none;
+  transition: color var(--dur) var(--ease);
 }
 
-:root[data-theme="dark"] .theme-toggle__moon {
-  display: none;
+.profile__link svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  transition: color var(--dur) var(--ease);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-toggle__sun {
-    display: block;
-  }
-
-  :root:not([data-theme="light"]) .theme-toggle__moon {
-    display: none;
-  }
+.profile__link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
-/* Menu icon: two rules that cross into an X when open. */
-.nav-toggle__bar {
-  transform-origin: 12px 12px;
-  transition: transform var(--dur) var(--ease);
+.profile__link:hover svg {
+  color: currentColor;
 }
 
-.nav-toggle[aria-expanded="true"] .nav-toggle__bar--top {
-  transform: rotate(45deg) translateY(3px);
+.profile__divider {
+  flex: none;
+  width: 1px;
+  height: 1.5rem;
+  margin-inline: auto var(--space-3xs); /* pushes the toggle to the far edge on mobile */
+  background-color: var(--rule-strong);
 }
 
-.nav-toggle[aria-expanded="true"] .nav-toggle__bar--bottom {
-  transform: rotate(-45deg) translateY(-3px);
-}
-
-/* JS-only controls are hidden when scripts don't run. */
-html:not(.js) .theme-toggle,
-html:not(.js) .nav-toggle {
-  display: none;
-}
-
-/* Small screens */
-@media not all and (min-width: 48em) {
-  /* Without JS the nav simply wraps onto its own row; the taller bar scrolls
-     away instead of pinning, so it never covers anchor targets. */
-  html:not(.js) {
-    scroll-padding-top: var(--space-s);
+@media (min-width: 30em) {
+  .profile {
+    column-gap: var(--space-m);
   }
 
-  html:not(.js) .site-header {
-    position: static;
-  }
-
-  html:not(.js) .site-header__inner {
-    flex-wrap: wrap;
-  }
-
-  html:not(.js) .site-nav {
-    order: 3;
-    width: 100%;
-    padding-bottom: var(--space-2xs);
-  }
-
-  /* With JS: a disclosure panel under the header bar. */
-  .js .site-nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    display: none;
-    max-height: calc(100vh - var(--header-h));
-    max-height: calc(100dvh - var(--header-h));
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    background-color: var(--bg);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  /* The toggle now precedes the nav in the DOM (focus order); keep the old
-     tight spacing next to the theme toggle. */
-  .js .nav-toggle {
-    margin-right: calc(var(--space-3xs) - var(--space-s));
-  }
-
-  .js .site-header.is-nav-open .site-nav {
-    display: block;
-  }
-
-  .js .site-nav__list {
-    flex-direction: column;
-    max-width: calc(var(--container) + 2 * var(--gutter));
-    margin-inline: auto;
-    padding: var(--space-2xs) var(--gutter) var(--space-s);
-  }
-
-  .js .site-nav__link {
-    width: 100%;
-    min-height: 3rem;
-    font-family: var(--font-display);
-    font-size: var(--step-2);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    color: var(--text);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .js .site-nav__list > li:last-child .site-nav__link {
-    border-bottom: 0;
-  }
-
-  .js .site-nav__link::after {
-    display: none;
-  }
-
-  .js .site-nav__link[aria-current] {
-    color: var(--accent);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
+  .profile__eyebrow {
+    font-size: var(--step--2);
   }
 }
 
-@media (min-width: 48em) {
-  /* Doubled class so this beats the later .icon-button display rule. */
-  .icon-button.nav-toggle {
-    display: none;
+@media (min-width: 56em) {
+  .profile {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "portrait id      actions"
+      "portrait tagline actions";
+    align-content: center;
+    column-gap: var(--space-m);
+    padding-block: var(--space-l) var(--space-m);
   }
 
-  .site-nav {
-    margin-right: var(--space-2xs);
+  .profile__id {
+    align-self: end;
+  }
+
+  .profile__eyebrow {
+    font-size: var(--step--1);
+  }
+
+  .profile__topics {
+    --sep: 1.75em;
+  }
+
+  .profile__eyebrow::before {
+    content: "";
+    width: 1.75rem;
+    height: 1px;
+    background-color: var(--accent);
+  }
+
+  .profile__tagline {
+    align-self: start;
+    margin-top: var(--space-2xs);
+  }
+
+  .profile__actions {
+    align-self: center;
+    margin: 0 -0.5rem 0 0;
+  }
+
+  .profile__divider {
+    margin-inline: var(--space-2xs);
+  }
+}
+
+/* Portrait: a small round photo with a hairline edge.
+   The monogram sits underneath; the <img> covers it once loaded and is
+   removed on error, so a missing photo never shows a broken-image icon.
+   The photo is a square crop centred on the face; for a wider shot, raise
+   --portrait-zoom and aim it with --portrait-focus. */
+.portrait {
+  --portrait-w: 4.5rem;
+  --portrait-zoom: 1;
+  --portrait-focus: 50% 45%;
+  width: var(--portrait-w);
+}
+
+.portrait__frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background-color: var(--bg-sunken);
+}
+
+.portrait__monogram {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: calc(var(--portrait-w) * 0.4);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--accent);
+  user-select: none;
+  transform: translateX(-0.04em); /* optical nudge: italics lean right */
+}
+
+.portrait__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--portrait-focus);
+  transform: scale(var(--portrait-zoom));
+  transform-origin: var(--portrait-focus);
+  color: transparent; /* no-JS fallback: hide alt text if the file is missing */
+  transition: opacity 400ms var(--ease);
+}
+
+/* With JS, keep the photo invisible until it has actually loaded. */
+.js .portrait__img:not(.is-loaded) {
+  opacity: 0;
+}
+
+@media (min-width: 30em) {
+  .portrait {
+    --portrait-w: 5.5rem;
   }
 }
 
 
-/* 5. Buttons & icon buttons
+/* 6. Buttons & icon buttons
    ========================================================================== */
 
 .button-row {
@@ -608,6 +814,7 @@ html:not(.js) .nav-toggle {
 .icon-button {
   display: inline-grid;
   place-items: center;
+  flex: none;
   width: var(--touch);
   height: var(--touch);
   padding: 0;
@@ -628,253 +835,169 @@ html:not(.js) .nav-toggle {
   height: 1.25rem;
 }
 
-
-/* 6. Hero & portrait
-   ========================================================================== */
-
-.hero {
-  padding-block: clamp(2.5rem, 1rem + 6vw, 6rem) clamp(3rem, 1.5rem + 6vw, 6.5rem);
+/* Theme toggle icon swap: moon in light mode, sun in dark mode. */
+.theme-toggle__sun {
+  display: none;
 }
 
-.hero__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-xl);
-  align-items: center;
+:root[data-theme="dark"] .theme-toggle__sun {
+  display: block;
 }
 
-.hero__eyebrow::before {
-  content: "";
-  width: 2.5rem;
-  height: 1px;
-  background-color: var(--accent);
+:root[data-theme="dark"] .theme-toggle__moon {
+  display: none;
 }
 
-@media not all and (min-width: 30em) {
-  .hero__eyebrow {
-    column-gap: var(--space-2xs);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle__sun {
+    display: block;
   }
 
-  .hero__eyebrow::before {
+  :root:not([data-theme="light"]) .theme-toggle__moon {
     display: none;
   }
 }
 
-.hero__title {
-  margin-top: var(--space-m);
-  font-size: var(--step-5);
-  font-weight: 400;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
+/* JS-only controls are hidden when scripts don't run. */
+html:not(.js) .theme-toggle,
+html:not(.js) .profile__divider {
+  display: none;
 }
 
-.hero__role {
-  margin-top: var(--space-s);
-  font-family: var(--font-display);
-  font-size: var(--step-2);
-  font-style: italic;
-  line-height: 1.2;
-  color: var(--accent);
+
+/* 7. Resume (main column on the home page)
+   ========================================================================== */
+
+.resume-section + .resume-section {
+  margin-top: var(--space-xl);
 }
 
-.hero__tagline {
-  max-width: 38ch;
-  margin-top: var(--space-m);
-  font-size: var(--step-1);
-  line-height: 1.55;
+.resume-section > .label {
+  margin-bottom: var(--space-m);
+}
+
+.resume-section .prose > p:not(.lede) {
   color: var(--text-muted);
 }
 
-.hero__actions {
-  margin-top: var(--space-l);
-}
-
-/* Portrait: arch-topped frame with an offset hairline outline.
-   The monogram sits underneath; the <img> covers it once loaded and is
-   removed on error, so a missing photo never shows a broken-image icon. */
-.portrait {
-  position: relative;
-  isolation: isolate;
-  width: clamp(11rem, 44vw, 15rem);
-  margin-right: 0.875rem; /* room for the offset outline */
-  --portrait-radius: 50% 50% var(--radius-m) var(--radius-m) / 40% 40% var(--radius-m) var(--radius-m);
-}
-
-.portrait::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border: 1px solid var(--accent);
-  border-radius: var(--portrait-radius);
-  transform: translate(0.875rem, 0.875rem);
-}
-
-.portrait__frame {
-  position: relative;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  border-radius: var(--portrait-radius);
-  background-color: var(--bg-sunken);
-}
-
-/* Contour rings radiating from the base of the arch (monogram backdrop). */
-.portrait__frame::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: repeating-radial-gradient(
-    circle at 50% 100%,
-    transparent 0 13px,
-    var(--rule) 13.5px 14.5px,
-    transparent 15px 16px
-  );
-  -webkit-mask-image: radial-gradient(circle at 50% 52%, transparent 0 28%, #000 62%);
-  mask-image: radial-gradient(circle at 50% 52%, transparent 0 28%, #000 62%);
-}
-
-.portrait__monogram {
-  position: relative;
-  font-family: var(--font-display);
-  font-size: clamp(3.75rem, 2.5rem + 5vw, 6.5rem);
-  font-style: italic;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  color: var(--accent);
-  user-select: none;
-  /* optical nudge: italics lean right */
-  transform: translateX(-0.04em);
-}
-
-.portrait__img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 25%;
-  color: transparent; /* no-JS fallback: hide alt text if the file is missing */
-  transition: opacity 400ms var(--ease);
-}
-
-/* With JS, keep the photo invisible until it has actually loaded. */
-.js .portrait__img:not(.is-loaded) {
-  opacity: 0;
-}
-
-@media (min-width: 56em) {
-  .hero__grid {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-3xl);
-  }
-
-  .portrait {
-    width: clamp(15rem, 24vw, 21rem);
-    margin-right: 1.25rem;
-  }
-
-  .portrait::before {
-    transform: translate(1.25rem, 1.25rem);
-  }
-}
-
-@media not all and (min-width: 56em) {
-  /* Portrait leads on small screens; DOM keeps the h1 first. */
-  .hero__portrait {
-    order: -1;
-  }
-}
-
-
-/* 7. Sections (shared layout)
-   ========================================================================== */
-
-.section {
-  padding-bottom: var(--space-section);
-}
-
-.section__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-l);
-  padding-top: var(--space-m);
-  border-top: 1px solid var(--rule-strong);
-}
-
-.section__head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-s);
-}
-
-.section__num {
-  font-family: var(--font-sans);
-  font-size: var(--step--1);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-}
-
-.section__title {
-  font-size: var(--step-3);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-}
-
-.section__body {
-  min-width: 0;
-}
-
-@media (min-width: 56em) {
-  .section__grid {
-    grid-template-columns: 14rem minmax(0, 1fr);
-    gap: var(--space-xl);
-    padding-top: var(--space-l);
-  }
-
-  .section__head {
-    flex-direction: column;
-    gap: var(--space-xs);
-    align-self: start;
-    position: sticky;
-    top: calc(var(--header-h) + var(--space-l));
-  }
-}
-
-
-/* 8. Timeline (experience + education)
-   ========================================================================== */
-
+/* Timeline: years | rail with ring markers | monogram badge | name.
+   The heading comes first in the DOM; grid placement shows the years first. */
 .timeline {
+  --tl-years: 8.5rem;
+  --tl-rail: 2.25rem;
+  --tl-badge: 2.75rem;
+  --tl-ring: 0.6875rem;
+  --tl-pad: 0.875rem;
+  --tl-ring-y: calc(var(--tl-pad) + var(--tl-badge) / 2); /* ring centre from item top */
   list-style: none;
   padding: 0;
 }
 
 .timeline__item {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3xs) var(--space-l);
-  padding-block: var(--space-m);
-  border-bottom: 1px solid var(--rule);
+  grid-template-columns: var(--tl-years) var(--tl-rail) var(--tl-badge) minmax(0, 1fr);
+  align-items: start;
+  padding-block: var(--tl-pad);
 }
 
-.timeline__item:first-child {
-  padding-top: var(--space-2xs);
+/* The rail: one segment per item, trimmed at the first and last ring. */
+.timeline__item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--tl-years) + var(--tl-rail) / 2);
+  width: 1px;
+  margin-left: -0.5px;
+  background-color: var(--rule-strong);
 }
+
+.timeline__item:first-child::before {
+  top: var(--tl-ring-y);
+}
+
+.timeline__item:last-child::before {
+  bottom: auto;
+  height: var(--tl-ring-y);
+}
+
+.timeline__item:only-child::before {
+  display: none;
+}
+
+/* Ring marker (a grid item, so it centres in the rail column). */
+.timeline__item::after {
+  content: "";
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: var(--tl-ring);
+  height: var(--tl-ring);
+  margin-top: calc((var(--tl-badge) - var(--tl-ring)) / 2);
+  border: 1.5px solid var(--rule-strong);
+  border-radius: 50%;
+  background-color: var(--bg);
+}
+
+.timeline__item--current::after {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.timeline__body {
+  grid-column: 4;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--tl-badge);
+  padding-left: var(--space-s);
+}
+
+.timeline__badge {
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: var(--tl-badge);
+  height: var(--tl-badge);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background-color: var(--bg-sunken);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  user-select: none;
+}
+
+/* Icon badge (the current role shows a shield instead of initials). */
+.timeline__badge svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 
 /* Years: start / dash / end in fixed columns so numerals align vertically. */
 .timeline__years {
-  order: -1;
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   grid-template-columns: 4.4ch 2ch auto; /* 4 tabular digits + tracking */
   justify-content: start;
   align-items: baseline;
+  align-content: center;
+  min-height: var(--tl-badge);
   font-size: var(--step--1);
   font-weight: 500;
+  line-height: 1.25rem;
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -900,175 +1023,381 @@ html:not(.js) .nav-toggle {
 }
 
 .timeline__title {
-  font-size: var(--step-2);
+  font-size: clamp(1.25rem, 1.16rem + 0.4vw, 1.5rem);
   line-height: 1.2;
 }
 
 .timeline--education .timeline__title {
-  font-size: clamp(1.25rem, 1.14rem + 0.55vw, 1.625rem);
-  max-width: 32ch;
+  max-width: 34ch;
+  font-size: clamp(1.125rem, 1.07rem + 0.3vw, 1.3125rem);
+  line-height: 1.25;
 }
 
 .timeline__meta {
-  margin-top: var(--space-3xs);
+  margin-top: 0.125rem;
+  font-size: var(--step--1);
   color: var(--text-muted);
 }
 
-@media (min-width: 40em) {
+/* Narrow: the years stack above the badge + name; the rail moves to the left. */
+@media not all and (min-width: 40em) {
+  .timeline {
+    --tl-rail: 1.5rem;
+    --tl-gap: var(--space-2xs);
+    --tl-ring-y: calc(var(--tl-pad) + 1.25rem + var(--tl-gap) + var(--tl-badge) / 2);
+  }
+
   .timeline__item {
-    grid-template-columns: 9.5rem minmax(0, 1fr);
-    align-items: baseline;
+    grid-template-columns: var(--tl-rail) var(--tl-badge) minmax(0, 1fr);
+    row-gap: var(--tl-gap);
+    padding-left: 0;
+  }
+
+  .timeline__item::before {
+    left: calc(var(--tl-rail) / 2);
+  }
+
+  .timeline__years {
+    grid-column: 2 / -1;
+    grid-row: 1;
+    min-height: 1.25rem;
+    margin-left: var(--space-2xs);
+  }
+
+  .timeline__item::after {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .timeline__badge {
+    grid-column: 2;
+    grid-row: 2;
+    margin-left: var(--space-2xs);
+  }
+
+  .timeline__body {
+    grid-column: 3;
+    grid-row: 2;
+    padding-left: calc(var(--space-2xs) + var(--space-xs));
   }
 }
 
 
-/* 9. Projects
+/* 8. Column footer
+   One copy ends the main column in the shell; outside it (stacked layouts,
+   print) the page-level copy after the portfolio shows instead.
    ========================================================================== */
 
-/* Hide the empty state automatically once any project card exists. */
-.projects:has(.project-card) .projects__empty {
+.shell__main > .colophon {
   display: none;
 }
 
-.projects__empty {
-  display: grid;
-  gap: var(--space-xs);
-  max-width: 40rem;
-  padding: var(--space-l);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  background-color: var(--surface);
-}
-
-.projects__empty-icon {
-  width: 2rem;
-  height: 2rem;
-  color: var(--accent);
-}
-
-.projects__empty-title {
-  font-family: var(--font-display);
-  font-size: var(--step-2);
-  font-style: italic;
-  line-height: 1.25;
-}
-
-.projects__empty-text {
-  max-width: 52ch;
+.colophon {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-s);
+  border-top: 3px double var(--rule-strong);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-muted);
 }
 
-.projects__empty-link {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-height: var(--touch);
-  font-weight: 500;
-}
 
-.projects__empty-link svg,
-.project-card__link svg,
-.case-study__back svg,
-.site-footer__top svg {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-  transition: transform var(--dur) var(--ease);
-}
+/* 9. Portfolio aside
+   ========================================================================== */
 
-.projects__empty-link:hover svg {
-  transform: translate(2px, -2px);
-}
-
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: var(--space-m);
-}
-
-.project-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  padding: var(--space-m);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  background-color: var(--surface);
+.portfolio__head {
+  border-bottom: 1px solid transparent;
   transition: border-color var(--dur) var(--ease);
 }
 
-.project-card:hover,
-.project-card:focus-within {
-  border-color: var(--rule-strong);
+/* Hairline under the fixed head once the list has scrolled (set by portfolio.js). */
+.portfolio.is-scrolled .portfolio__head {
+  border-bottom-color: var(--rule);
 }
 
-.project-card__meta {
+.portfolio__head > .label {
+  margin-bottom: var(--space-m);
+}
+
+/* Filter chips. Visually 2rem tall; the ::before extends the hit area to 44px. */
+.chips {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-s);
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-2xs);
+  padding-bottom: var(--space-m);
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-full);
+  background-color: transparent;
   font-size: var(--step--1);
   font-weight: 500;
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: 0.08em;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: -6px -3px;
+}
+
+.chip:hover {
+  border-color: var(--text);
+  background-color: var(--bg-sunken);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--ink);
+  background-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.chip:focus-visible {
+  border-radius: var(--radius-full);
+}
+
+/* The list. Inline padding (cancelled by the negative margin) leaves room for
+   the cards' hover bleed and focus rings inside the scroll container. */
+.portfolio__list {
+  margin-inline: -0.875rem;
+  padding-top: 0.25rem;
+  padding-inline: 0.875rem;
+}
+
+.portfolio__group + .portfolio__group {
+  margin-top: var(--space-l);
+}
+
+.portfolio__group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: var(--step--2);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.project-card__index {
+.portfolio__group-title svg {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
   color: var(--accent);
 }
 
-.project-card__title {
-  font-size: var(--step-2);
-  line-height: 1.15;
+.cards {
+  --card-pad: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-2xs) var(--space-s);
+  margin-inline: calc(-1 * (var(--card-pad) + 1px)); /* thumbnails align with the label */
+  list-style: none;
+  padding: 0;
 }
 
-.project-card__title a {
+/* Project card: the title link is stretched over the whole card (one link). */
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-xs);
+  padding: var(--card-pad) var(--card-pad) var(--space-s);
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--rule);
+  background-color: var(--surface);
+}
+
+.card.is-current {
+  border-color: var(--rule);
+  background-color: var(--surface);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Windows High Contrast drops backgrounds and shadows: keep the states visible. */
+@media (forced-colors: active) {
+  .chip[aria-pressed="true"] {
+    forced-color-adjust: none;
+    border-color: SelectedItem;
+    background-color: SelectedItem;
+    color: SelectedItemText;
+  }
+
+  .card.is-current {
+    border-color: Highlight;
+    border-left-width: 4px;
+    padding-left: calc(var(--card-pad) - 3px); /* keeps the thumbnail aligned */
+  }
+}
+
+.card__media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background-color: var(--bg-sunken);
+}
+
+.card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms var(--ease);
+}
+
+.card:hover .card__img {
+  transform: scale(1.03);
+}
+
+/* No image: faint rings around a circle (echoing the round portrait) + initials. */
+.card__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: var(--bg-sunken);
+}
+
+.card__placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    transparent 0 12px,
+    var(--rule) 12.5px 13.5px,
+    transparent 14px 15px
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 22%, #000 70%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 22%, #000 70%);
+}
+
+.card__placeholder::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 62%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.card__initials {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  user-select: none;
+  transform: translateX(-0.04em);
+}
+
+.card__body {
+  display: grid;
+  gap: 0.375rem;
+  padding-inline: 0.125rem;
+}
+
+.card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.card__title {
+  min-width: 0;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.card__link {
   text-decoration: none;
-  background-image: linear-gradient(currentColor, currentColor);
-  background-size: 0% 1px;
-  background-position: 0 100%;
-  background-repeat: no-repeat;
-  transition: background-size 260ms var(--ease);
 }
 
-.project-card__title a:hover {
-  background-size: 100% 1px;
+.card__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius-m);
 }
 
-.project-card__summary {
+.card__link:focus-visible {
+  outline: none;
+}
+
+.card__link:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.card:hover .card__title-text,
+.card__link:focus-visible .card__title-text {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.card__arrow {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.3em;
+  vertical-align: -0.08em;
+  color: var(--accent);
+  transition: transform var(--dur) var(--ease);
+}
+
+.card:hover .card__arrow,
+.card__link:focus-visible .card__arrow {
+  transform: translateX(3px);
+}
+
+.card__year {
+  flex: none;
+  font-size: var(--step--2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
 }
 
-.project-card__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-m);
-  margin-top: auto;
-  padding: var(--space-3xs) 0 0;
-  border-top: 1px solid var(--rule);
-  list-style: none;
-}
-
-.project-card__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-height: var(--touch);
+.card__summary {
   font-size: var(--step--1);
-  font-weight: 500;
-  color: var(--accent);
-  text-decoration: none;
+  line-height: 1.5;
+  color: var(--text-muted);
 }
 
-.project-card__link:hover {
-  color: var(--accent-strong);
-  text-decoration: underline;
-}
-
-.project-card__link:hover svg {
-  transform: translate(2px, -2px);
+.card__tags {
+  margin-top: var(--space-3xs);
 }
 
 /* Tag chips (non-interactive). */
@@ -1086,7 +1415,7 @@ html:not(.js) .nav-toggle {
   padding: 0.25rem 0.625rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: var(--step--2);
   font-weight: 500;
   line-height: 1.3;
   letter-spacing: 0.06em;
@@ -1094,150 +1423,99 @@ html:not(.js) .nav-toggle {
   color: var(--text-muted);
 }
 
-
-/* 10. Contact link rows
-   ========================================================================== */
-
-.contact__lede {
-  margin-bottom: var(--space-l);
+.card__tags {
+  gap: 0.375rem;
 }
 
-.link-list {
-  list-style: none;
-  padding: 0;
-  border-top: 1px solid var(--rule);
+.card__tags .tag {
+  padding: 0.1875rem 0.5rem;
+  border-color: var(--rule);
+  font-size: 0.6875rem;
 }
 
-.link-row {
+/* Empty state (rendered by portfolio.js while window.PROJECTS is empty). */
+.portfolio__empty {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "label arrow"
-    "handle arrow";
-  align-items: center;
-  gap: 0 var(--space-m);
-  padding-block: var(--space-m);
-  border-bottom: 1px solid var(--rule);
-  text-decoration: none;
+  gap: var(--space-xs);
+  max-width: 40rem;
+  padding: var(--space-m);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background-color: var(--surface);
 }
 
-.link-row__label {
-  grid-area: label;
-  font-family: var(--font-display);
-  font-size: var(--step-3);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  transition: color var(--dur) var(--ease);
-}
-
-.link-row__handle {
-  grid-area: handle;
-  font-size: var(--step--1);
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
-}
-
-.link-row__arrow {
-  grid-area: arrow;
+.portfolio__empty-icon {
   width: 1.75rem;
   height: 1.75rem;
   color: var(--accent);
-  transition: transform var(--dur) var(--ease);
 }
 
-.link-row:hover .link-row__label {
-  color: var(--accent);
+.portfolio__empty-title {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-style: italic;
+  line-height: 1.25;
 }
 
-.link-row:hover .link-row__arrow {
-  transform: translate(4px, -4px);
-}
-
-@media (min-width: 40em) {
-  .link-row {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas: "label handle arrow";
-    align-items: baseline;
-  }
-
-  .link-row__arrow {
-    align-self: center;
-  }
-}
-
-
-/* 11. Footer
-   ========================================================================== */
-
-.site-footer {
-  padding-block: var(--space-l) var(--space-xl);
-}
-
-.site-footer__inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s) var(--space-m);
-  padding-top: var(--space-m);
-  border-top: 3px double var(--rule-strong);
-}
-
-.site-footer__copy {
+.portfolio__empty-text {
   font-size: var(--step--1);
   color: var(--text-muted);
-  font-variant-numeric: tabular-nums lining-nums;
 }
 
-.site-footer__end {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-}
-
-.social-list {
-  display: flex;
-  gap: var(--space-3xs);
-  list-style: none;
-  padding: 0;
-}
-
-.social-list .icon-button {
-  color: var(--text-muted);
-}
-
-.social-list .icon-button:hover {
-  color: var(--text);
-}
-
-.site-footer__top {
+.portfolio__empty-link {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   min-height: var(--touch);
   font-size: var(--step--1);
   font-weight: 500;
+}
+
+.portfolio__empty-link svg,
+.back-link svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--dur) var(--ease);
+}
+
+.portfolio__empty-link:hover svg {
+  transform: translate(2px, -2px);
+}
+
+.portfolio__noscript {
+  max-width: 40rem;
+  padding: var(--space-m);
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-m);
+  font-size: var(--step--1);
   color: var(--text-muted);
-  text-decoration: none;
 }
 
-.site-footer__top:hover {
-  color: var(--text);
-}
-
-.site-footer__top:hover svg {
-  transform: translateY(-2px);
+.portfolio__noscript .text-link {
+  font-weight: 500;
 }
 
 
-/* 12. Case-study page
+/* 10. Project page (main column of projects/<slug>/index.html)
    ========================================================================== */
 
-.case-study__intro {
-  padding-block: clamp(2rem, 1rem + 4vw, 4rem) var(--space-2xl);
+.case__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-s);
+  /* The 44px back link makes this row taller than a label; pull it up so the
+     label lines up with "Portfolio" at the top of the aside. */
+  margin-top: calc((1.3 * var(--step--1) - var(--touch)) / 2);
 }
 
-.case-study__back {
+.case__top > .label {
+  flex: 1 1 12rem;
+}
+
+.back-link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
@@ -1246,77 +1524,111 @@ html:not(.js) .nav-toggle {
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
+  transition: color var(--dur) var(--ease);
 }
 
-.case-study__back:hover {
+.back-link:hover {
   color: var(--text);
 }
 
-.case-study__back:hover svg {
+.back-link:hover svg {
   transform: translateX(-3px);
 }
 
-.case-study__eyebrow {
-  margin-top: var(--space-l);
+.case__intro {
+  padding-top: var(--space-m);
 }
 
-.case-study__eyebrow::before {
+.case__crumb {
+  color: var(--accent);
+}
+
+.case__crumb::before {
   content: "";
-  width: 2.5rem;
+  width: 1.75rem;
   height: 1px;
-  background-color: var(--accent);
+  background-color: currentColor;
 }
 
-.case-study__title {
+.case__title {
+  max-width: 20ch;
   margin-top: var(--space-s);
-  max-width: 18ch;
   font-size: var(--step-4);
   line-height: 1.02;
   letter-spacing: -0.025em;
 }
 
-.case-study__summary {
-  margin-top: var(--space-m);
+.case__subtitle {
   max-width: 44ch;
+  margin-top: var(--space-s);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
-.case-study__facts {
+.case__actions {
+  margin-top: var(--space-m);
+}
+
+.facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: var(--space-s) var(--space-l);
-  margin-top: var(--space-xl);
-  padding-top: var(--space-m);
+  margin-top: var(--space-l);
+  padding-top: var(--space-s);
   border-top: 1px solid var(--rule);
 }
 
-.case-study__facts dt {
-  font-size: 0.75rem;
+.facts dt {
+  font-size: var(--step--2);
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.case-study__facts dd {
+.facts dd {
   margin-top: var(--space-3xs);
   font-family: var(--font-display);
   font-size: var(--step-1);
 }
 
-.case-study__tags,
-.case-study__actions {
-  margin-top: var(--space-l);
+/* Case-study sections number themselves, so deleting one never leaves a gap. */
+.shell__main {
+  counter-reset: case-section;
 }
 
-.case-study__figure {
+.case__section {
+  counter-increment: case-section;
+}
+
+.case__section .label__num::before {
+  content: counter(case-section, decimal-leading-zero);
+}
+
+.case__section {
+  margin-top: var(--space-xl);
+}
+
+.case__section > .label {
+  margin-bottom: var(--space-m);
+}
+
+.case__figure {
   display: grid;
   gap: var(--space-xs);
 }
 
-.case-study__placeholder {
+.case__figure + .case__figure {
+  margin-top: var(--space-l);
+}
+
+.case__placeholder {
   display: grid;
   place-items: center;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   padding: var(--space-m);
   border: 1px dashed var(--rule-strong);
   border-radius: var(--radius-m);
@@ -1326,7 +1638,7 @@ html:not(.js) .nav-toggle {
   text-align: center;
 }
 
-.case-study__figure img {
+.case__figure img {
   width: 100%;
   height: auto;
   border: 1px solid var(--rule);
@@ -1334,17 +1646,13 @@ html:not(.js) .nav-toggle {
   background-color: var(--bg-sunken);
 }
 
-.case-study__figure + .case-study__figure {
-  margin-top: var(--space-l);
-}
-
-.case-study__figure figcaption {
+.case__figure figcaption {
   font-size: var(--step--1);
   color: var(--text-muted);
 }
 
 
-/* 13. Motion & reduced motion
+/* 11. Motion & reduced motion
    ========================================================================== */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1352,7 +1660,7 @@ html:not(.js) .nav-toggle {
     scroll-behavior: smooth;
   }
 
-  /* Gentle staggered entrance for the hero. Opacity/transform only: no layout shift. */
+  /* Gentle staggered entrance. Opacity/transform only: no layout shift. */
   .reveal {
     animation: reveal-rise 700ms var(--ease) both;
     animation-delay: calc(var(--reveal-order, 0) * 70ms);
@@ -1382,18 +1690,57 @@ html:not(.js) .nav-toggle {
 }
 
 
-/* 14. Print
+/* 12. Print
    ========================================================================== */
 
 @media print {
-  .site-header,
   .skip-link,
-  .site-footer__end {
+  .profile__divider,
+  .theme-toggle,
+  .chips,
+  .portfolio__head > [role="status"],
+  .portfolio:has(.portfolio__empty),
+  body[data-project] .shell__aside,
+  .card__placeholder::before,
+  .case__crumb::before {
     display: none;
   }
 
-  .section__head {
-    position: static;
+  /* Without background graphics the filled button would print as bare text. */
+  .button--primary {
+    background: none;
+    color: var(--text);
+    border-color: var(--rule-strong);
+  }
+
+  /* Print the profile and project URLs next to the link labels. */
+  .profile__link::after,
+  .case__actions .button::after {
+    content: " " attr(href);
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  body:not([data-project]) .shell__aside:not(:has(.portfolio__empty)) {
+    break-before: page;
+  }
+
+  .card,
+  .timeline__item,
+  .portfolio__empty,
+  .case__figure,
+  .facts {
+    break-inside: avoid;
+  }
+
+  .label,
+  .portfolio__group-title,
+  .case__title {
+    break-after: avoid;
+  }
+
+  .colophon {
+    margin-top: var(--space-l);
   }
 
   :root:root {
